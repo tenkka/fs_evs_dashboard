@@ -10,35 +10,33 @@ import {
   Cell,
   ResponsiveContainer,
 } from "recharts";
-import { foodSafetySections, sectionCompliance } from "@/lib/foodSafetyAudit";
 
-const data = foodSafetySections.map((s) => {
-  const { pct } = sectionCompliance(s);
-  return { name: s.name, pct };
-});
+export type SpendCategoryPoint = { name: string; amount: number; color: string };
 
-export function FoodSafetySectionChart() {
+function formatCompactCurrency(v: number): string {
+  return v >= 1000 ? `$${Math.round(v / 1000)}k` : `$${v}`;
+}
+
+export function SpendByCategoryChart({ data }: { data: SpendCategoryPoint[] }) {
+  const height = Math.max(120, data.length * 36 + 40);
   return (
-    <ResponsiveContainer width="100%" height={520}>
-      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 32, left: 0, bottom: 0 }} barCategoryGap={8}>
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} layout="vertical" margin={{ top: 0, right: 24, left: 0, bottom: 0 }} barCategoryGap={10}>
         <CartesianGrid stroke="var(--gridline)" horizontal={false} />
         <XAxis
           type="number"
-          domain={[0, 100]}
-          ticks={[0, 25, 50, 75, 100]}
           tick={{ fill: "var(--text-muted)", fontSize: 12 }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v) => `${v}%`}
+          tickFormatter={formatCompactCurrency}
         />
         <YAxis
           type="category"
           dataKey="name"
-          interval={0}
-          tick={{ fill: "var(--text-secondary)", fontSize: 11 }}
+          tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
           axisLine={false}
           tickLine={false}
-          width={190}
+          width={120}
         />
         <Tooltip
           cursor={{ fill: "var(--gridline)", opacity: 0.4 }}
@@ -48,11 +46,11 @@ export function FoodSafetySectionChart() {
             borderRadius: 8,
             fontSize: 13,
           }}
-          formatter={(value) => [`${value}% compliant`, ""]}
+          formatter={(value) => [Number(value).toLocaleString("en-US", { style: "currency", currency: "USD" }), ""]}
         />
-        <Bar dataKey="pct" radius={[0, 3, 3, 0]} maxBarSize={14}>
+        <Bar dataKey="amount" radius={[0, 3, 3, 0]} maxBarSize={20}>
           {data.map((d) => (
-            <Cell key={d.name} fill={d.pct < 100 ? "var(--status-serious)" : "var(--series-1)"} />
+            <Cell key={d.name} fill={d.color} />
           ))}
         </Bar>
       </BarChart>

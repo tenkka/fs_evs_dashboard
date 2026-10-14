@@ -5,10 +5,14 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ClipboardCheck,
+  ClipboardList,
   CalendarRange,
   Gauge,
   Users,
   UtensilsCrossed,
+  DollarSign,
+  BookOpen,
+  IdCard,
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuthedUser } from "@/lib/UserContext";
@@ -26,7 +30,11 @@ const navItems: { href: string; label: string; employeeLabel?: string; icon: typ
     roles: ["employee", "manager", "admin"],
   },
   { href: "/scheduling", label: "Scheduling", icon: CalendarRange, roles: ["employee", "manager", "admin"] },
+  { href: "/my-forms", label: "My Forms", icon: ClipboardList, roles: ["employee", "manager", "admin"] },
   { href: "/kpis", label: "KPIs", icon: Gauge, roles: ["manager", "admin"] },
+  { href: "/finance", label: "Finance", icon: DollarSign, roles: ["manager", "admin"] },
+  { href: "/manuals", label: "Manuals", icon: BookOpen, roles: ["employee", "manager", "admin"] },
+  { href: "/profile", label: "My Profile", icon: IdCard, roles: ["employee", "manager", "admin"] },
 ];
 
 export function Sidebar() {
