@@ -43,7 +43,7 @@ export function FacilityFormsManager({ facilityScope }: { facilityScope: string 
       <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ListChecks className="h-4 w-4 text-series-1" />
-          <h2 className="text-sm font-medium text-text-primary">Facility Forms</h2>
+          <h2 className="text-sm font-medium text-text-primary">Manage Facility Forms</h2>
         </div>
         {facilityScope === "all" && (
           <select

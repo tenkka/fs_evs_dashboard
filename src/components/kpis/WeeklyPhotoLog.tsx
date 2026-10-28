@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ImagePlus, Loader2, TriangleAlert, Trash2, Camera } from "lucide-react";
 import { useWeeklyPhotos, uploadWeeklyPhoto, deleteWeeklyPhoto, type WeeklyPhoto } from "@/lib/weeklyPhotos";
 import { useAuthedUser } from "@/lib/UserContext";
+import { DateRangeSelect, inRange, type DateRange } from "@/components/ui/DateRangeFilter";
 
 function formatPhotoDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
@@ -13,15 +14,18 @@ function formatPhotoDate(d: Date): string {
 
 export function WeeklyPhotoLog({ facilityScope, canUpload }: { facilityScope: string; canUpload: boolean }) {
   const { persona } = useAuthedUser();
-  const { photos, error } = useWeeklyPhotos(facilityScope);
+  const { photos: allPhotos, error } = useWeeklyPhotos(facilityScope);
   const [file, setFile] = useState<File | null>(null);
   const [comment, setComment] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [range, setRange] = useState<DateRange>("month");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loading = !error && photos === null;
+  const photos = useMemo(() => (allPhotos ?? []).filter((p) => inRange(p.createdAt, range)), [allPhotos, range]);
+
+  const loading = !error && allPhotos === null;
 
   const handleUpload = async () => {
     if (!file) return;
@@ -84,6 +88,11 @@ export function WeeklyPhotoLog({ facilityScope, canUpload }: { facilityScope: st
         </div>
       )}
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-medium text-text-primary">Photo Log</h2>
+        <DateRangeSelect value={range} onChange={setRange} />
+      </div>
+
       {error ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border-hairline bg-surface-1 px-6 py-16 text-center">
           <TriangleAlert className="h-6 w-6 text-[#8a5a00]" />
@@ -94,16 +103,22 @@ export function WeeklyPhotoLog({ facilityScope, canUpload }: { facilityScope: st
               : `Error: ${error}`}
           </p>
         </div>
-      ) : loading || !photos ? (
+      ) : loading ? (
         <div className="flex items-center justify-center rounded-lg border border-border-hairline bg-surface-1 px-6 py-16">
           <Loader2 className="h-5 w-5 animate-spin text-text-muted" />
         </div>
       ) : photos.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border-hairline bg-surface-1 px-6 py-16 text-center">
           <Camera className="h-6 w-6 text-text-muted" />
-          <p className="text-sm font-medium text-text-primary">No photos posted yet</p>
+          <p className="text-sm font-medium text-text-primary">
+            {(allPhotos?.length ?? 0) > 0 ? "No photos in this range" : "No photos posted yet"}
+          </p>
           <p className="max-w-sm text-sm text-text-muted">
-            {canUpload ? "Post this week's walkthrough photos above." : "Check back once a manager posts this week's photos."}
+            {(allPhotos?.length ?? 0) > 0
+              ? "Try a wider date range."
+              : canUpload
+                ? "Post this week's walkthrough photos above."
+                : "Check back once a manager posts this week's photos."}
           </p>
         </div>
       ) : (

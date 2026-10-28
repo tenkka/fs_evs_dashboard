@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { departments } from "@/lib/data";
 
-export type SpendTrendPoint = { week: string; FS: number; EVS: number; total: number };
+export type SpendTrendPoint = { period: string; FS: number; EVS: number; total: number };
 export type SpendTrendMode = "total" | "department";
 
 function formatCompactCurrency(v: number): string {
@@ -20,16 +20,20 @@ function formatCompactCurrency(v: number): string {
 }
 
 export function SpendTrendChart({ data, mode = "department" }: { data: SpendTrendPoint[]; mode?: SpendTrendMode }) {
+  // Thins out x-axis ticks so labels stay legible whether there are a handful of
+  // years or a couple of hundred weeks in the range — always show at least ~12 ticks.
+  const tickInterval = Math.max(0, Math.ceil(data.length / 12) - 1);
+
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 8, right: 28, left: 0, bottom: 0 }}>
         <CartesianGrid stroke="var(--gridline)" vertical={false} />
         <XAxis
-          dataKey="week"
+          dataKey="period"
           tick={{ fill: "var(--text-muted)", fontSize: 12 }}
           axisLine={{ stroke: "var(--baseline)" }}
           tickLine={false}
-          interval={3}
+          interval={tickInterval}
         />
         <YAxis
           tick={{ fill: "var(--text-muted)", fontSize: 12 }}

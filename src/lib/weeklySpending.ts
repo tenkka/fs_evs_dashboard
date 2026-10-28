@@ -15,6 +15,7 @@ import {
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { db, storage } from "./firebase";
 import type { Department } from "./data";
+import { currentWeekDates } from "./timeFormat";
 
 export type SpendingEntry = {
   id: string;
@@ -32,6 +33,37 @@ export type SpendingEntry = {
 
 // Vendors seen across facilities so far — offered as suggestions, not a restricted list.
 export const COMMON_PLATFORMS = ["Western Paper", "Staples", "US Foods", "Imperial Dade", "Walmart", "Misc"];
+
+export type SpendGranularity = "week" | "month" | "year";
+
+export const SPEND_GRANULARITY_OPTIONS: { label: string; value: SpendGranularity }[] = [
+  { label: "Weekly", value: "week" },
+  { label: "Monthly", value: "month" },
+  { label: "Yearly", value: "year" },
+];
+
+/**
+ * The bucket a date falls into for a given granularity — a sortable key, a full display
+ * label (for list section headers, where there's room), and a short `axisLabel` (for dense
+ * chart x-axes, where "Week of Oct 12 – Oct 18" repeated 50+ times would overlap).
+ */
+export function spendGroupKeyFor(d: Date, granularity: SpendGranularity): { key: string; label: string; axisLabel: string } {
+  if (granularity === "year") {
+    const year = String(d.getFullYear());
+    return { key: year, label: year, axisLabel: year };
+  }
+  if (granularity === "month") {
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    return { key, label, axisLabel: label };
+  }
+  const week = currentWeekDates(d);
+  return {
+    key: week[0].date,
+    label: `Week of ${week[0].dateLabel} – ${week[6].dateLabel}`,
+    axisLabel: week[0].dateLabel,
+  };
+}
 
 const MAX_ENTRIES = 500;
 

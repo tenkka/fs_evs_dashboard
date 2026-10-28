@@ -7,13 +7,18 @@ import {
   addSpendingEntry,
   deleteSpendingEntry,
   COMMON_PLATFORMS,
+  spendGroupKeyFor,
+  SPEND_GRANULARITY_OPTIONS,
   type SpendingEntry,
+  type SpendGranularity,
 } from "@/lib/weeklySpending";
 import { useAuthedUser } from "@/lib/UserContext";
 import { useFacilityDocs } from "@/lib/firestoreFacilities";
 import { departments, type Department } from "@/lib/data";
 import { currentWeekDates, toDateKey } from "@/lib/timeFormat";
 import { StatTile } from "@/components/ui/StatTile";
+import { DateRangeSelect, inRange, type DateRange } from "@/components/ui/DateRangeFilter";
+import clsx from "clsx";
 
 function formatCurrency(amount: number): string {
   return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -51,6 +56,8 @@ export function WeeklySpendingLog({ facilityScope, canSubmit }: { facilityScope:
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [range, setRange] = useState<DateRange>("month");
+  const [granularity, setGranularity] = useState<SpendGranularity>("week");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loading = !error && entries === null;
@@ -68,14 +75,15 @@ export function WeeklySpendingLog({ facilityScope, canSubmit }: { facilityScope:
   const groups = useMemo(() => {
     const map = new Map<string, { label: string; entries: SpendingEntry[] }>();
     for (const entry of entries ?? []) {
-      const { key, label } = weekKeyFor(entry.createdAt);
+      if (!inRange(entry.createdAt, range)) continue;
+      const { key, label } = spendGroupKeyFor(entry.createdAt, granularity);
       if (!map.has(key)) map.set(key, { label, entries: [] });
       map.get(key)!.entries.push(entry);
     }
     return Array.from(map.entries())
       .sort((a, b) => b[0].localeCompare(a[0]))
       .map(([key, g]) => ({ key, ...g }));
-  }, [entries]);
+  }, [entries, range, granularity]);
 
   const amount = Number(amountInput);
   const canSubmitForm =
@@ -228,12 +236,37 @@ export function WeeklySpendingLog({ facilityScope, canSubmit }: { facilityScope:
             <StatTile label="Entries This Week" value={String(thisWeekEntries.length)} icon={Receipt} />
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-medium text-text-primary">Spending Log</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-1 rounded-md border border-border-hairline p-1">
+                {SPEND_GRANULARITY_OPTIONS.map((g) => (
+                  <button
+                    key={g.value}
+                    onClick={() => setGranularity(g.value)}
+                    className={clsx(
+                      "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                      granularity === g.value ? "bg-series-1 text-white" : "text-text-secondary hover:bg-surface-2"
+                    )}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+              <DateRangeSelect value={range} onChange={setRange} />
+            </div>
+          </div>
+
           {groups.length === 0 ? (
             <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border-hairline bg-surface-1 px-6 py-16 text-center">
               <Receipt className="h-6 w-6 text-text-muted" />
-              <p className="text-sm font-medium text-text-primary">No spending logged yet</p>
+              <p className="text-sm font-medium text-text-primary">No spending logged{entries && entries.length > 0 ? " in this range" : " yet"}</p>
               <p className="max-w-sm text-sm text-text-muted">
-                {canSubmit ? "Log this week's spending above." : "Check back once a manager logs this week's spending."}
+                {entries && entries.length > 0
+                  ? "Try a wider date range."
+                  : canSubmit
+                    ? "Log this week's spending above."
+                    : "Check back once a manager logs this week's spending."}
               </p>
             </div>
           ) : (

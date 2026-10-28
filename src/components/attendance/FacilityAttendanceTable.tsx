@@ -1,24 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import clsx from "clsx";
 import { Loader2, TriangleAlert, Clock, ListChecks, Users, UserCheck } from "lucide-react";
 import { useAllAttendance, type AttendanceSession } from "@/lib/attendance";
 import { useFacilityUsers } from "@/lib/firestoreUsers";
-import { formatClock, formatDuration, formatDateLabel, formatWeekday, isSameDay, sessionMinutes } from "@/lib/timeFormat";
+import { formatClock, formatDuration, formatDateLabel, formatWeekday, sessionMinutes } from "@/lib/timeFormat";
 import { StatTile } from "@/components/ui/StatTile";
-
-type Period = "today" | "week";
-
-const periods: { label: string; value: Period }[] = [
-  { label: "Today", value: "today" },
-  { label: "Last 7 days", value: "week" },
-];
+import { DateRangeSelect, DATE_RANGE_LABELS, inRange, type DateRange } from "@/components/ui/DateRangeFilter";
 
 export function FacilityAttendanceTable({ facilityScope }: { facilityScope: string }) {
   const { users, error: usersError } = useFacilityUsers(facilityScope);
   const { sessions, error: attendanceError } = useAllAttendance();
-  const [period, setPeriod] = useState<Period>("today");
+  const [range, setRange] = useState<DateRange>("week");
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -30,11 +23,8 @@ export function FacilityAttendanceTable({ facilityScope }: { facilityScope: stri
 
   const rows = useMemo(() => {
     if (!sessions || !users) return [];
-    const cutoff = period === "today" ? null : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return sessions
-      .filter((s) => usersById.has(s.uid))
-      .filter((s) => (period === "today" ? isSameDay(s.clockIn, now) : s.clockIn >= cutoff!));
-  }, [sessions, users, usersById, period, now]);
+    return sessions.filter((s) => usersById.has(s.uid)).filter((s) => inRange(s.clockIn, range, now));
+  }, [sessions, users, usersById, range, now]);
 
   const stats = useMemo(() => {
     const totalMinutes = rows.reduce((sum, s) => sum + sessionMinutes(s.clockIn, s.clockOut, now), 0);
@@ -68,12 +58,10 @@ export function FacilityAttendanceTable({ facilityScope }: { facilityScope: stri
     );
   }
 
-  const periodLabel = period === "today" ? "today" : "last 7 days";
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label={`Total Hours — ${periodLabel}`} value={formatDuration(stats.totalMinutes)} icon={Clock} />
+        <StatTile label={`Total Hours — ${DATE_RANGE_LABELS[range]}`} value={formatDuration(stats.totalMinutes)} icon={Clock} />
         <StatTile label="Sessions" value={String(stats.sessionCount)} icon={ListChecks} />
         <StatTile label="Staff Represented" value={String(stats.staffCount)} icon={Users} />
         <StatTile label="Currently Clocked In" value={String(stats.activeCount)} icon={UserCheck} />
@@ -85,20 +73,7 @@ export function FacilityAttendanceTable({ facilityScope }: { facilityScope: stri
             <h2 className="text-sm font-medium text-text-primary">Attendance</h2>
             <p className="text-xs text-text-muted">{rows.length} records</p>
           </div>
-          <div className="flex gap-1 rounded-md border border-border-hairline p-1">
-            {periods.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => setPeriod(p.value)}
-                className={clsx(
-                  "rounded px-3 py-1.5 text-xs font-medium transition-colors",
-                  period === p.value ? "bg-series-1 text-white" : "text-text-secondary hover:bg-surface-2"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <DateRangeSelect value={range} onChange={setRange} />
         </div>
 
         <div className="overflow-x-auto">

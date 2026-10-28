@@ -6,8 +6,7 @@ import clsx from "clsx";
 import { subscribeToAttendance, clockIn, clockOutSession, type AttendanceSession } from "@/lib/attendance";
 import { formatClock, formatDuration, formatDateLabel, formatWeekday, isSameDay, sessionMinutes } from "@/lib/timeFormat";
 import { useAuthedUser } from "@/lib/UserContext";
-
-type Period = "today" | "week";
+import { DateRangeSelect, DATE_RANGE_LABELS, inRange, type DateRange } from "@/components/ui/DateRangeFilter";
 
 // A clock in/out punch must stand for at least this long before the next punch is allowed.
 const MIN_PUNCH_GAP_MS = 60_000;
@@ -20,7 +19,7 @@ export function MyAttendanceHistory() {
   const [loadState, setLoadState] = useState<LoadState | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
-  const [period, setPeriod] = useState<Period>("today");
+  const [range, setRange] = useState<DateRange>("week");
 
   useEffect(() => {
     return subscribeToAttendance(
@@ -46,14 +45,14 @@ export function MyAttendanceHistory() {
   const isClockedIn = lastSession !== null && lastSession.clockOut === null;
 
   const todaySessions = useMemo(() => (sessions ?? []).filter((s) => isSameDay(s.clockIn, now)), [sessions, now]);
-  const weekSessions = useMemo(() => {
-    const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return (sessions ?? []).filter((s) => s.clockIn >= cutoff);
-  }, [sessions, now]);
-
   const todayMinutes = todaySessions.reduce((sum, s) => sum + sessionMinutes(s.clockIn, s.clockOut, now), 0);
-  const weekMinutes = weekSessions.reduce((sum, s) => sum + sessionMinutes(s.clockIn, s.clockOut, now), 0);
-  const totalLabel = period === "today" ? formatDuration(todayMinutes) : formatDuration(weekMinutes);
+
+  const rangeSessions = useMemo(
+    () => (sessions ?? []).filter((s) => inRange(s.clockIn, range, now)),
+    [sessions, range, now]
+  );
+  const rangeMinutes = rangeSessions.reduce((sum, s) => sum + sessionMinutes(s.clockIn, s.clockOut, now), 0);
+  const totalLabel = formatDuration(rangeMinutes);
 
   // The next punch must wait at least a minute after the last one.
   const lastActionAt = lastSession ? (lastSession.clockOut ?? lastSession.clockIn) : null;
@@ -61,8 +60,8 @@ export function MyAttendanceHistory() {
   const canPunch = msSinceLastAction >= MIN_PUNCH_GAP_MS;
   const cooldownSeconds = canPunch ? 0 : Math.ceil((MIN_PUNCH_GAP_MS - msSinceLastAction) / 1000);
 
-  // Every individual clock-in/out record, newest first — one row per session, not per day.
-  const allRecords = sessions ?? [];
+  // Every individual clock-in/out record within the selected range, newest first.
+  const allRecords = rangeSessions;
 
   const handleClockIn = async () => {
     if (!canPunch) return;
@@ -181,34 +180,23 @@ export function MyAttendanceHistory() {
             </span>
             <div>
               <p className="text-lg font-semibold tabular-nums text-text-primary">{totalLabel}</p>
-              <p className="text-xs text-text-muted">Total time — {period === "today" ? "today" : "last 7 days"}</p>
+              <p className="text-xs text-text-muted">Total time — {DATE_RANGE_LABELS[range]}</p>
             </div>
           </div>
-          <div className="flex gap-1 rounded-md border border-border-hairline p-1">
-            {(["today", "week"] as Period[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={clsx(
-                  "rounded px-3 py-1.5 text-xs font-medium transition-colors",
-                  period === p ? "bg-series-1 text-white" : "text-text-secondary hover:bg-surface-2"
-                )}
-              >
-                {p === "today" ? "Today" : "Last 7 days"}
-              </button>
-            ))}
-          </div>
+          <DateRangeSelect value={range} onChange={setRange} />
         </div>
       </div>
 
       <div className="rounded-lg border border-border-hairline bg-surface-1">
         <div className="border-b border-border-hairline p-4">
           <h2 className="text-sm font-medium text-text-primary">Your attendance history</h2>
-          <p className="text-xs text-text-muted">From Firestore · every clock-in/out record</p>
+          <p className="text-xs text-text-muted">{DATE_RANGE_LABELS[range]} · every clock-in/out record</p>
         </div>
 
         {allRecords.length === 0 ? (
-          <p className="p-4 text-sm text-text-muted">No attendance recorded yet.</p>
+          <p className="p-4 text-sm text-text-muted">
+            {(sessions?.length ?? 0) > 0 ? "No attendance in this range." : "No attendance recorded yet."}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

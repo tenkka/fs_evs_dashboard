@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { FileCheck, Loader2, TriangleAlert, ChevronDown, ChevronUp } from "lucide-react";
 import { useSubmissionsForFacility, useKpiForms, type AnswerValue } from "@/lib/kpiForms";
+import { DateRangeSelect, inRange, type DateRange } from "@/components/ui/DateRangeFilter";
 
 function formatDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -14,9 +15,10 @@ function formatAnswer(value: AnswerValue): string {
 }
 
 export function SubmissionsList({ facilityScope }: { facilityScope: string }) {
-  const { submissions, error } = useSubmissionsForFacility(facilityScope);
+  const { submissions: allSubmissions, error } = useSubmissionsForFacility(facilityScope);
   const { forms } = useKpiForms();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [range, setRange] = useState<DateRange>("month");
 
   const fieldLabelsByForm = useMemo(() => {
     const map = new Map<string, Map<string, string>>();
@@ -26,13 +28,21 @@ export function SubmissionsList({ facilityScope }: { facilityScope: string }) {
     return map;
   }, [forms]);
 
-  const loading = !error && submissions === null;
+  const submissions = useMemo(
+    () => (allSubmissions ?? []).filter((s) => inRange(s.submittedAt, range)),
+    [allSubmissions, range]
+  );
+
+  const loading = !error && allSubmissions === null;
 
   return (
     <div className="rounded-lg border border-border-hairline bg-surface-1 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <FileCheck className="h-4 w-4 text-series-1" />
-        <h2 className="text-sm font-medium text-text-primary">Recent Submissions</h2>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <FileCheck className="h-4 w-4 text-series-1" />
+          <h2 className="text-sm font-medium text-text-primary">Recent Submissions</h2>
+        </div>
+        <DateRangeSelect value={range} onChange={setRange} />
       </div>
 
       {error ? (
@@ -41,12 +51,14 @@ export function SubmissionsList({ facilityScope }: { facilityScope: string }) {
           <p className="text-sm font-medium text-text-primary">Couldn&apos;t load submissions</p>
           <p className="max-w-sm text-sm text-text-muted">Error: {error}</p>
         </div>
-      ) : loading || !submissions ? (
+      ) : loading || !allSubmissions ? (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-5 w-5 animate-spin text-text-muted" />
         </div>
       ) : submissions.length === 0 ? (
-        <p className="py-4 text-center text-sm text-text-muted">No submissions yet.</p>
+        <p className="py-4 text-center text-sm text-text-muted">
+          {allSubmissions.length > 0 ? "No submissions in this range." : "No submissions yet."}
+        </p>
       ) : (
         <ul className="divide-y divide-border-hairline">
           {submissions.map((sub) => {

@@ -22,7 +22,7 @@ export function FacilityFormsLog() {
     <div className="rounded-lg border border-border-hairline bg-surface-1 p-4">
       <div className="mb-3 flex items-center gap-2">
         <ListChecks className="h-4 w-4 text-series-1" />
-        <h2 className="text-sm font-medium text-text-primary">Facility Forms</h2>
+        <h2 className="text-sm font-medium text-text-primary">Browse &amp; Log Forms</h2>
       </div>
 
       {error ? (

@@ -30,7 +30,7 @@ const navItems: { href: string; label: string; employeeLabel?: string; icon: typ
     roles: ["employee", "manager", "admin"],
   },
   { href: "/scheduling", label: "Scheduling", icon: CalendarRange, roles: ["employee", "manager", "admin"] },
-  { href: "/my-forms", label: "My Forms", icon: ClipboardList, roles: ["employee", "manager", "admin"] },
+  { href: "/facility-forms", label: "Facility Forms", icon: ClipboardList, roles: ["employee", "manager", "admin"] },
   { href: "/kpis", label: "KPIs", icon: Gauge, roles: ["manager", "admin"] },
   { href: "/finance", label: "Finance", icon: DollarSign, roles: ["manager", "admin"] },
   { href: "/manuals", label: "Manuals", icon: BookOpen, roles: ["employee", "manager", "admin"] },

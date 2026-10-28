@@ -6,6 +6,7 @@ import { useSubmissionsForFacility, useKpiForms, type KpiForm, type FormFieldDef
 import { StatTile } from "@/components/ui/StatTile";
 import { FieldTrendChart } from "@/components/charts/FieldTrendChart";
 import { FieldDistributionChart } from "@/components/charts/FieldDistributionChart";
+import { DateRangeSelect, inRange, type DateRange } from "@/components/ui/DateRangeFilter";
 
 const CHOOSABLE_TYPES = new Set<FormFieldDef["type"]>(["boolean", "compliance", "rating", "select"]);
 const INDIVIDUAL_CHART_LIMIT = 8;
@@ -41,13 +42,19 @@ function answerLabel(field: FormFieldDef, value: AnswerValue): string {
 }
 
 export function SubmissionAnalytics({ facilityScope }: { facilityScope: string }) {
-  const { submissions, error } = useSubmissionsForFacility(facilityScope);
+  const { submissions: allSubmissions, error } = useSubmissionsForFacility(facilityScope);
   const { forms } = useKpiForms();
   const [selectedFormId, setSelectedFormId] = useState("");
+  const [range, setRange] = useState<DateRange>("month");
+
+  const submissions = useMemo(
+    () => (allSubmissions ?? []).filter((s) => inRange(s.submittedAt, range)),
+    [allSubmissions, range]
+  );
 
   const formsWithCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const sub of submissions ?? []) counts.set(sub.formId, (counts.get(sub.formId) ?? 0) + 1);
+    for (const sub of submissions) counts.set(sub.formId, (counts.get(sub.formId) ?? 0) + 1);
     return (forms ?? [])
       .map((form) => ({ form, count: counts.get(form.id) ?? 0 }))
       .filter((f) => f.count > 0)
@@ -58,7 +65,7 @@ export function SubmissionAnalytics({ facilityScope }: { facilityScope: string }
   const form: KpiForm | undefined = formsWithCounts.find((f) => f.form.id === effectiveFormId)?.form;
 
   const formSubmissions = useMemo(
-    () => (submissions ?? []).filter((s) => s.formId === effectiveFormId).sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime()),
+    () => submissions.filter((s) => s.formId === effectiveFormId).sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime()),
     [submissions, effectiveFormId]
   );
 
@@ -115,7 +122,7 @@ export function SubmissionAnalytics({ facilityScope }: { facilityScope: string }
       .map((opt) => ({ label: opt, count: counts.get(opt)!, color: COLOR_RAMP[options.indexOf(opt) % COLOR_RAMP.length] }));
   }, [useAggregate, choosableFields, formSubmissions]);
 
-  const loading = !error && submissions === null;
+  const loading = !error && allSubmissions === null;
 
   return (
     <div className="rounded-lg border border-border-hairline bg-surface-1 p-4">
@@ -124,19 +131,22 @@ export function SubmissionAnalytics({ facilityScope }: { facilityScope: string }
           <BarChart3 className="h-4 w-4 text-series-1" />
           <h2 className="text-sm font-medium text-text-primary">Submission Insights</h2>
         </div>
-        {formsWithCounts.length > 0 && (
-          <select
-            value={effectiveFormId}
-            onChange={(e) => setSelectedFormId(e.target.value)}
-            className="rounded-md border border-border-hairline bg-surface-1 px-2.5 py-1.5 text-sm text-text-primary"
-          >
-            {formsWithCounts.map(({ form, count }) => (
-              <option key={form.id} value={form.id}>
-                {form.title} ({count})
-              </option>
-            ))}
-          </select>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {formsWithCounts.length > 0 && (
+            <select
+              value={effectiveFormId}
+              onChange={(e) => setSelectedFormId(e.target.value)}
+              className="rounded-md border border-border-hairline bg-surface-1 px-2.5 py-1.5 text-sm text-text-primary"
+            >
+              {formsWithCounts.map(({ form, count }) => (
+                <option key={form.id} value={form.id}>
+                  {form.title} ({count})
+                </option>
+              ))}
+            </select>
+          )}
+          <DateRangeSelect value={range} onChange={setRange} />
+        </div>
       </div>
 
       {error ? (
@@ -152,8 +162,14 @@ export function SubmissionAnalytics({ facilityScope }: { facilityScope: string }
       ) : formsWithCounts.length === 0 || !form ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border-hairline px-6 py-10 text-center">
           <FileCheck className="h-6 w-6 text-text-muted" />
-          <p className="text-sm font-medium text-text-primary">No submissions yet</p>
-          <p className="max-w-sm text-sm text-text-muted">Charts will appear here once a form has been filled out.</p>
+          <p className="text-sm font-medium text-text-primary">
+            {(allSubmissions?.length ?? 0) > 0 ? "No submissions in this range" : "No submissions yet"}
+          </p>
+          <p className="max-w-sm text-sm text-text-muted">
+            {(allSubmissions?.length ?? 0) > 0
+              ? "Try a wider date range."
+              : "Charts will appear here once a form has been filled out."}
+          </p>
         </div>
       ) : (
         <div className="space-y-5">

@@ -15,6 +15,7 @@ import { currentWeekDates, toDateKey, formatTimeOfDay } from "@/lib/timeFormat";
 import { roleLabels } from "@/lib/auth";
 import { useAuthedUser } from "@/lib/UserContext";
 import { facilityScopeName } from "@/lib/facilities";
+import { AssistantWidget } from "@/components/assistant/AssistantWidget";
 
 const TREND_DAYS = 14;
 
@@ -183,6 +184,8 @@ export default function OverviewPage() {
                   <StaffByRoleChart data={roleData} />
                 </div>
               </div>
+
+              <AssistantWidget />
             </>
           )}
         </main>
