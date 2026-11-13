@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, onSnapshot, query, where, type FirestoreError } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, where, type FirestoreError } from "firebase/firestore";
 import { db } from "./firebase";
 import { personaFromUserDoc, type Persona, type UserDoc } from "./auth";
 
@@ -47,6 +47,31 @@ export function useFacilityUsers(facilityScope: string): { users: Persona[] | nu
   const current = loadState?.scope === facilityScope ? loadState : null;
   return {
     users: current && "users" in current ? current.users : null,
+    error: current && "error" in current ? current.error : null,
+  };
+}
+
+// Tags a fetched result with the uid it was fetched for, so a stale result from a
+// just-changed uid is never mistaken for the current one.
+type UserLoadState = { uid: string; user: Persona | null } | { uid: string; error: string };
+
+/** Live Firestore users/{uid} document for a specific user, e.g. when a Manager/Admin looks up a staff member. */
+export function useUserById(uid: string): { user: Persona | null; loading: boolean; error: string | null } {
+  const [loadState, setLoadState] = useState<UserLoadState | null>(null);
+
+  useEffect(() => {
+    if (!db) return;
+    return onSnapshot(
+      doc(db, "users", uid),
+      (snap) => setLoadState({ uid, user: snap.exists() ? personaFromUserDoc(snap.id, snap.data() as UserDoc) : null }),
+      (err) => setLoadState({ uid, error: err.code })
+    );
+  }, [uid]);
+
+  const current = loadState?.uid === uid ? loadState : null;
+  return {
+    user: current && "user" in current ? current.user : null,
+    loading: current === null,
     error: current && "error" in current ? current.error : null,
   };
 }

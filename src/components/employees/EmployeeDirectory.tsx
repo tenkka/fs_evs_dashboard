@@ -1,12 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Loader2, TriangleAlert } from "lucide-react";
+import { Loader2, TriangleAlert, DollarSign } from "lucide-react";
 import type { Persona, Role } from "@/lib/auth";
 import { roleLabels } from "@/lib/auth";
 import { facilityScopeName } from "@/lib/facilities";
 import { useFacilityDocs } from "@/lib/firestoreFacilities";
+import { useAuthedUser } from "@/lib/UserContext";
 
 // Admins are filtered out before this component ever sees them (see employees/page.tsx) —
 // this is a staff directory, not a system-user list — so only these two roles are selectable.
@@ -37,12 +40,16 @@ export function EmployeeDirectory({
 }) {
   const [filter, setFilter] = useState<StaffRole | "All">("All");
   const facilityDocs = useFacilityDocs();
+  const { persona } = useAuthedUser();
+  const router = useRouter();
 
   const rows = useMemo(() => {
     return (users ?? []).filter((u) => filter === "All" || u.role === filter);
   }, [users, filter]);
 
   const showFacilityColumn = facilityScope === "all";
+  // Pay statements are sensitive compensation data — only Admins get this column, not Managers.
+  const showPayrollColumn = persona.role === "admin";
 
   if (error) {
     return (
@@ -104,11 +111,16 @@ export function EmployeeDirectory({
               <th className="px-4 py-2.5 font-medium">Email</th>
               <th className="px-4 py-2.5 font-medium">Role</th>
               {showFacilityColumn && <th className="px-4 py-2.5 font-medium">Facility</th>}
+              {showPayrollColumn && <th className="px-4 py-2.5 font-medium">Payroll</th>}
             </tr>
           </thead>
           <tbody>
             {rows.map((u) => (
-              <tr key={u.id} className="border-b border-border-hairline last:border-0 hover:bg-surface-2/60">
+              <tr
+                key={u.id}
+                onClick={() => router.push(`/employees/${encodeURIComponent(u.id)}`)}
+                className="cursor-pointer border-b border-border-hairline last:border-0 hover:bg-surface-2/60"
+              >
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2.5">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-series-1/10 text-xs font-medium text-series-1">
@@ -128,11 +140,30 @@ export function EmployeeDirectory({
                     {facilityDocs?.[u.facility]?.name ?? facilityScopeName(u.facility)}
                   </td>
                 )}
+                {showPayrollColumn && (
+                  <td className="px-4 py-2.5">
+                    {u.employeeId ? (
+                      <Link
+                        href={`/employees/${encodeURIComponent(u.id)}/payroll`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 text-series-1 hover:underline"
+                      >
+                        <DollarSign className="h-3.5 w-3.5" />
+                        View
+                      </Link>
+                    ) : (
+                      <span className="text-text-muted">—</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={showFacilityColumn ? 4 : 3} className="px-4 py-6 text-center text-text-muted">
+                <td
+                  colSpan={3 + (showFacilityColumn ? 1 : 0) + (showPayrollColumn ? 1 : 0)}
+                  className="px-4 py-6 text-center text-text-muted"
+                >
                   No users match this filter.
                 </td>
               </tr>

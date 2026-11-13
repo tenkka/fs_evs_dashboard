@@ -1,13 +1,11 @@
 "use client";
 
 import { Mail, Building2, ShieldCheck } from "lucide-react";
-import { useAuthedUser } from "@/lib/UserContext";
 import { useFacilityDocs } from "@/lib/firestoreFacilities";
-import { roleLabels } from "@/lib/auth";
+import { roleLabels, type Persona } from "@/lib/auth";
 import { facilityScopeName } from "@/lib/facilities";
 
-export function PersonalInfoCard() {
-  const { persona } = useAuthedUser();
+export function PersonalInfoCard({ persona }: { persona: Persona }) {
   const facilityDocs = useFacilityDocs();
   const facilityName = persona.facility !== "all" ? facilityDocs?.[persona.facility]?.name ?? facilityScopeName(persona.facility) : "All Facilities";
 

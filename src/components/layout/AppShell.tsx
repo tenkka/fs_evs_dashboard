@@ -26,15 +26,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       router.replace("/login");
     } else if (firebaseUser && pathname === "/login") {
       // Wait for the persona to resolve so each role goes straight to its own home page —
-      // Employee -> My Attendance, Manager/Admin -> Overview — instead of always landing on
+      // Employee -> Timesheet, Manager/Admin -> Overview — instead of always landing on
       // "/" first. If the email isn't a recognized persona, "/" shows the right state (the
       // "account not set up" message) instead of leaving the login form sitting there.
       if (profileLoading) return;
       router.replace(persona ? homePathForRole(persona.role) : "/");
     } else if (persona?.role === "employee" && pathname === "/") {
       // Employees can't see the Overview dashboard — send them straight to their own
-      // attendance page instead of the "you don't have access" screen.
-      router.replace("/attendance");
+      // timesheet page instead of the "you don't have access" screen.
+      router.replace("/timesheet");
     }
   }, [isFirebaseConfigured, authLoading, profileLoading, firebaseUser, persona, pathname, router]);
 
@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (persona.role === "employee" && pathname === "/") {
-    // Mid-redirect to /attendance (see the effect above) — avoid flashing the
+    // Mid-redirect to /timesheet (see the effect above) — avoid flashing the
     // Overview page's "you don't have access" message for a frame first.
     return (
       <FullPageMessage>

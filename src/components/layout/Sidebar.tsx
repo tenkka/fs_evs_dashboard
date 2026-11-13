@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  ClipboardCheck,
+  Clock,
   ClipboardList,
   CalendarRange,
   Gauge,
@@ -13,6 +13,7 @@ import {
   DollarSign,
   BookOpen,
   IdCard,
+  PiggyBank,
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuthedUser } from "@/lib/UserContext";
@@ -22,17 +23,12 @@ import { AccountMenu } from "./AccountMenu";
 const navItems: { href: string; label: string; employeeLabel?: string; icon: typeof LayoutDashboard; roles: Role[] }[] = [
   { href: "/", label: "Overview", icon: LayoutDashboard, roles: ["manager", "admin"] },
   { href: "/employees", label: "Employees", icon: Users, roles: ["manager", "admin"] },
-  {
-    href: "/attendance",
-    label: "Attendance",
-    employeeLabel: "My Attendance",
-    icon: ClipboardCheck,
-    roles: ["employee", "manager", "admin"],
-  },
+  { href: "/timesheet", label: "Timesheet", icon: Clock, roles: ["employee", "manager", "admin"] },
   { href: "/scheduling", label: "Scheduling", icon: CalendarRange, roles: ["employee", "manager", "admin"] },
   { href: "/facility-forms", label: "Facility Forms", icon: ClipboardList, roles: ["employee", "manager", "admin"] },
   { href: "/kpis", label: "KPIs", icon: Gauge, roles: ["manager", "admin"] },
   { href: "/finance", label: "Finance", icon: DollarSign, roles: ["manager", "admin"] },
+  { href: "/budget", label: "Budget", icon: PiggyBank, roles: ["admin"] },
   { href: "/manuals", label: "Manuals", icon: BookOpen, roles: ["employee", "manager", "admin"] },
   { href: "/profile", label: "My Profile", icon: IdCard, roles: ["employee", "manager", "admin"] },
 ];

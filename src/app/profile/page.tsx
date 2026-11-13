@@ -13,7 +13,7 @@ export default function ProfilePage() {
       <Header title="My Profile" description="Personal information and certificates" />
 
       <main className="flex-1 space-y-6 p-5">
-        <PersonalInfoCard />
+        <PersonalInfoCard persona={persona} />
         <CertificatesSection uid={persona.id} />
       </main>
     </>

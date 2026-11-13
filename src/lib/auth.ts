@@ -8,6 +8,8 @@ export type Persona = {
   role: Role;
   /** A Firestore facility doc id (e.g. "riverside", "IVC"), or "all" for admins. */
   facility: string;
+  /** This employee's UKG Ready employee code (e.g. "ISSI1191"), or null if not linked yet. */
+  employeeId: string | null;
 };
 
 export const roleLabels: Record<Role, string> = {
@@ -16,10 +18,10 @@ export const roleLabels: Record<Role, string> = {
   admin: "Admin",
 };
 
-/** Where each role lands after signing in. Employees get their own attendance view;
+/** Where each role lands after signing in. Employees get their own timesheet view;
  * Managers and Admins share the Overview dashboard (scoped by facility for Managers). */
 export function homePathForRole(role: Role): string {
-  return role === "employee" ? "/attendance" : "/";
+  return role === "employee" ? "/timesheet" : "/";
 }
 
 // Shape of a document in the Firestore "users" collection, doc id = Firebase Auth uid.
@@ -29,6 +31,7 @@ export type UserDoc = {
   last_name: string;
   role: string; // "EMPLOYEE" | "MANAGER" | "ADMIN" (case-insensitive)
   facility?: string; // doc id in the Firestore "facility" collection; defaults applied below if missing
+  employee_id?: string; // this employee's UKG Ready employee code, if linked
 };
 
 function normalizeRole(raw: string): Role | null {
@@ -56,5 +59,6 @@ export function personaFromUserDoc(uid: string, doc: UserDoc): Persona | null {
     initials: initialsFor(doc.first_name ?? "", doc.last_name ?? ""),
     role,
     facility,
+    employeeId: doc.employee_id?.trim() || null,
   };
 }

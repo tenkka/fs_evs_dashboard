@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { useAuthedUser } from "@/lib/UserContext";
-import { roleLabels, type Role } from "@/lib/auth";
+import { roleLabels, homePathForRole, type Role } from "@/lib/auth";
 
 export function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
   const { persona } = useAuthedUser();
@@ -23,10 +23,10 @@ export function RequireRole({ roles, children }: { roles: Role[]; children: Reac
         {roles.map((r) => roleLabels[r]).join(" and ")}.
       </p>
       <Link
-        href="/attendance"
+        href={homePathForRole(persona.role)}
         className="mt-2 rounded-md bg-series-1 px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
       >
-        Go to Attendance
+        Go back
       </Link>
     </main>
   );
